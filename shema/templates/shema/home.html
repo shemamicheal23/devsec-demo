@@ -1,0 +1,28 @@
+{% extends 'shema/base.html' %}
+
+{% block title %}Home - UAS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <h1 class="display-4">Welcome to UAS Auth Service</h1>
+        <p class="lead mt-4">
+            This is a secure User Authentication Service built as part of the DevSecOps assignment.
+            It provides registration, login, logout, and profile management features using Django's secure defaults.
+        </p>
+        <hr class="my-4">
+        {% if user.is_authenticated %}
+            <div class="alert alert-success">
+                You are currently logged in as <strong>{{ user.username }}</strong>.
+            </div>
+            <a href="{% url 'profile' %}" class="btn btn-primary btn-lg">View Your Profile</a>
+        {% else %}
+            <p>Please register or log in to access protected content.</p>
+            <div class="mt-4">
+                <a href="{% url 'login' %}" class="btn btn-primary btn-lg me-2">Login</a>
+                <a href="{% url 'register' %}" class="btn btn-outline-secondary btn-lg">Register</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
