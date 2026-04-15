@@ -4,6 +4,11 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, Pass
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.conf import settings
+import logging
+
+logger = logging.getLogger('security')
 
 def home(request):
     return render(request, 'shema/home.html')
@@ -13,6 +18,8 @@ def register_view(request):
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
+            ip = request.META.get('REMOTE_ADDR')
+            logger.info(f"NEW_USER_REGISTERED: '{user.username}' from IP {ip}")
             messages.success(request, f"Account created successfully for {user.username}!")
             login(request, user)
             return redirect('home')
@@ -32,7 +39,16 @@ def login_view(request):
             if user is not None:
                 login(request, user)
                 messages.info(request, f"You are now logged in as {username}.")
-                return redirect('home')
+                
+                # Secure redirect handling
+                next_url = request.GET.get('next', 'home')
+                if not url_has_allowed_host_and_scheme(
+                    url=next_url,
+                    allowed_hosts={request.get_host()},
+                    require_https=request.is_secure(),
+                ):
+                    next_url = 'home'
+                return redirect(next_url)
         else:
             messages.error(request, "Invalid username or password.")
     else:
