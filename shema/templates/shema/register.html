@@ -35,7 +35,7 @@
             {% endif %}
 
             <!-- Registration Form -->
-            <form method="post" id="register-form" novalidate>
+            <form method="post" id="register-form" action="?next={{ request.GET.next }}" novalidate>
                 {% csrf_token %}
 
                 {% for field in form %}

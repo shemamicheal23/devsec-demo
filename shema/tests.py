@@ -88,3 +88,36 @@ class AuthenticationTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'shema/instructor_dashboard.html')
+
+    def test_login_safe_redirect(self):
+        """Verify that a legitimate internal 'next' parameter works."""
+        response = self.client.post(self.login_url + '?next=' + self.profile_url, {
+            'username': self.username,
+            'password': self.password
+        })
+        self.assertRedirects(response, self.profile_url)
+
+    def test_login_open_redirect_prevention(self):
+        """Verify that a malicious external 'next' parameter is rejected."""
+        malicious_url = 'https://malicious-site.com'
+        response = self.client.post(self.login_url + '?next=' + malicious_url, {
+            'username': self.username,
+            'password': self.password
+        })
+        # Should redirect to home (default) instead of malicious site
+        self.assertRedirects(response, self.home_url)
+
+    def test_logout_safe_redirect(self):
+        """Verify that logout supports safe redirect targets."""
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.post(self.logout_url + '?next=' + self.home_url)
+        self.assertRedirects(response, self.home_url)
+
+    def test_register_safe_redirect(self):
+        """Verify that registration supports safe redirect targets."""
+        response = self.client.post(self.register_url + '?next=' + self.profile_url, {
+            'username': 'newuser3',
+            'password1': 'NewPass123!',
+            'password2': 'NewPass123!'
+        })
+        self.assertRedirects(response, self.profile_url)

@@ -107,10 +107,10 @@
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'login' %}">Sign In</a>
+                        <a class="nav-link" href="{% url 'login' %}{% if request.path != '/' %}?next={{ request.path }}{% endif %}">Sign In</a>
                     </li>
                     <li class="nav-item">
-                        <a class="btn btn-primary btn-sm ms-lg-1" href="{% url 'register' %}">Get Started</a>
+                        <a class="btn btn-primary btn-sm ms-lg-1" href="{% url 'register' %}{% if request.path != '/' %}?next={{ request.path }}{% endif %}">Get Started</a>
                     </li>
                     {% endif %}
                 </ul>

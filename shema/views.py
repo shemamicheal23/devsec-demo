@@ -10,6 +10,20 @@ import logging
 
 logger = logging.getLogger('security')
 
+def get_safe_redirect(request, default='home'):
+    """
+    Safely extracts and validates a redirect target from GET or POST.
+    """
+    redirect_to = request.POST.get('next', request.GET.get('next', ''))
+    
+    if not url_has_allowed_host_and_scheme(
+        url=redirect_to,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return default
+    return redirect_to or default
+
 def home(request):
     return render(request, 'shema/home.html')
 
@@ -22,7 +36,7 @@ def register_view(request):
             logger.info(f"NEW_USER_REGISTERED: '{user.username}' from IP {ip}")
             messages.success(request, f"Account created successfully for {user.username}!")
             login(request, user)
-            return redirect('home')
+            return redirect(get_safe_redirect(request))
         else:
             messages.error(request, "Registration failed. Please correct the errors below.")
     else:
@@ -39,16 +53,7 @@ def login_view(request):
             if user is not None:
                 login(request, user)
                 messages.info(request, f"You are now logged in as {username}.")
-                
-                # Secure redirect handling
-                next_url = request.GET.get('next', 'home')
-                if not url_has_allowed_host_and_scheme(
-                    url=next_url,
-                    allowed_hosts={request.get_host()},
-                    require_https=request.is_secure(),
-                ):
-                    next_url = 'home'
-                return redirect(next_url)
+                return redirect(get_safe_redirect(request))
         else:
             messages.error(request, "Invalid username or password.")
     else:
@@ -56,9 +61,10 @@ def login_view(request):
     return render(request, 'shema/login.html', {'form': form})
 
 def logout_view(request):
+    target = get_safe_redirect(request)
     logout(request)
     messages.info(request, "You have successfully logged out.")
-    return redirect('home')
+    return redirect(target)
 
 @login_required
 def profile_view(request):
@@ -72,7 +78,7 @@ def password_change_view(request):
             user = form.save()
             update_session_auth_hash(request, user)  # Keep the user logged in
             messages.success(request, 'Your password was successfully updated!')
-            return redirect('profile')
+            return redirect(get_safe_redirect(request, default='profile'))
         else:
             messages.error(request, 'Please correct the error below.')
     else:
