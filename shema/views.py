@@ -8,6 +8,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.conf import settings
 from django.http import Http404
 from django.contrib.auth.models import User
+from .models import Profile
 import logging
 
 logger = logging.getLogger('security')
@@ -92,3 +93,21 @@ def password_change_view(request):
 @permission_required('shema.view_instructor_dashboard', raise_exception=True)
 def instructor_dashboard_view(request):
     return render(request, 'shema/instructor_dashboard.html')
+
+@login_required
+def update_profile_view(request, username):
+    # Object-level authorization check: Prevent IDOR modification
+    # Ensure ONLY the owner can update their profile.
+    if request.user.username != username:
+        raise Http404("Profile not found")
+        
+    profile_user = get_object_or_404(User, username=username)
+    
+    if request.method == 'POST':
+        bio = request.POST.get('bio', '')
+        profile_user.profile.bio = bio
+        profile_user.profile.save()
+        messages.success(request, "Profile details updated successfully!")
+        return redirect('profile', username=username)
+    
+    return redirect('profile', username=username)

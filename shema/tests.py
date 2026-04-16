@@ -78,6 +78,26 @@ class AuthenticationTests(TestCase):
         # Assert IDOR prevention gracefully returns 404
         self.assertEqual(response.status_code, 404)
 
+    def test_idor_prevention_on_profile_update(self):
+        # Create a second user
+        target_user = User.objects.create_user(username='target_user', password='TestPass123!')
+        target_user.profile.bio = "Original Bio"
+        target_user.profile.save()
+        
+        # Log in as testuser (the attacker)
+        self.client.login(username=self.username, password=self.password)
+        
+        # Action: Attempt to modify target_user's bio via POST to their update URL
+        update_url = reverse('update_profile', kwargs={'username': 'target_user'})
+        response = self.client.post(update_url, {'bio': 'Hacked Bio'})
+        
+        # Assert: Access is denied
+        self.assertEqual(response.status_code, 404)
+        
+        # Assert: Data was NOT changed
+        target_user.refresh_from_db()
+        self.assertEqual(target_user.profile.bio, "Original Bio")
+
     def test_instructor_dashboard_anonymous_access(self):
         # Anonymous users should be redirected to login
         url = reverse('instructor_dashboard')

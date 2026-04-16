@@ -85,6 +85,29 @@
                     </div>
                 </div>
 
+                <!-- Bio & Update -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <div class="detail-field">
+                            <div class="detail-label">About You (Bio)</div>
+                            <div class="detail-value">
+                                {{ profile_user.profile.bio|default:"No bio set yet. Build your identity." }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <form method="post" action="{% url 'update_profile' profile_user.username %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="bio" class="detail-label mb-2">Update Message</label>
+                            <textarea name="bio" id="bio" class="form-control glass-input text-white w-100" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;" rows="2" placeholder="Write something generic...">{{ profile_user.profile.bio }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary btn-sm rounded-pill px-4">Save Changes</button>
+                    </form>
+                </div>
+
                 <!-- Actions -->
                 <div class="d-flex flex-column flex-sm-row gap-3 pt-3 border-top border-white border-opacity-10">
                     <a href="{% url 'password_change' %}" class="btn btn-primary flex-grow-1" id="profile-change-pw-btn">
