@@ -176,3 +176,7 @@ LOGGING = {
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'home'
+
+# Email configuration for Password Reset
+# Using console backend for local development to view reset links in terminal
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

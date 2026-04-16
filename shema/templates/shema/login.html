@@ -61,6 +61,12 @@
                 </div>
                 {% endfor %}
 
+                <div class="text-end mb-4" style="margin-top: -15px;">
+                    <a href="{% url 'password_reset' %}" class="small text-muted text-decoration-none hover-white">
+                        Forgot Password?
+                    </a>
+                </div>
+
                 <!-- CTA -->
                 <div class="d-grid gap-2 mt-5">
                     <button type="submit" class="btn btn-primary btn-lg" id="login-btn">

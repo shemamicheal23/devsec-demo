@@ -12,7 +12,7 @@ class AuthenticationTests(TestCase):
         self.home_url = reverse('home')
         self.username = 'testuser'
         self.password = 'TestPass123!'
-        self.user = User.objects.create_user(username=self.username, password=self.password)
+        self.user = User.objects.create_user(username=self.username, password=self.password, email='test@example.com')
 
     def test_home_page_status_code(self):
         response = self.client.get(self.home_url)
@@ -88,3 +88,20 @@ class AuthenticationTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'shema/instructor_dashboard.html')
+
+    def test_password_reset_request_flow(self):
+        # 1. Request password reset
+        response = self.client.post(reverse('password_reset'), {'email': self.user.email})
+        self.assertEqual(response.status_code, 302) # Redirect to done
+        from django.core import mail
+        # Verify email was "sent" (to console/outbox in test)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(self.user.email, mail.outbox[0].to)
+
+    def test_password_reset_invalid_email_no_enumeration(self):
+        # 2. Request with email that doesn't exist
+        response = self.client.post(reverse('password_reset'), {'email': 'fake@example.com'})
+        self.assertEqual(response.status_code, 302) # Should still redirect to done
+        from django.core import mail
+        # No email should be sent
+        self.assertEqual(len(mail.outbox), 0)
