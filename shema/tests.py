@@ -88,3 +88,43 @@ class AuthenticationTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'shema/instructor_dashboard.html')
+
+    def test_audit_logs_generated(self):
+        """Verify that security-relevant events trigger audit log entries."""
+        # 1. Test Login/Logout Logs
+        with self.assertLogs('security', level='INFO') as cm:
+            self.client.login(username=self.username, password=self.password)
+            self.client.logout()
+            self.assertTrue(any("SUCCESSFUL_LOGIN" in log for log in cm.output))
+            self.assertTrue(any("SUCCESSFUL_LOGOUT" in log for log in cm.output))
+
+        # 2. Test Registration Logs
+        with self.assertLogs('security', level='INFO') as cm:
+            self.client.post(self.register_url, {
+                'username': 'loguser',
+                'password1': 'Pass123!',
+                'password2': 'Pass123!'
+            })
+            self.assertTrue(any("USER_REGISTRATION" in log for log in cm.output))
+
+        # 3. Test Password Change Logs
+        self.client.login(username=self.username, password=self.password)
+        with self.assertLogs('security', level='INFO') as cm:
+            self.client.post(reverse('password_change'), {
+                'old_password': self.password,
+                'new_password1': 'NewPass123!',
+                'new_password2': 'NewPass123!'
+            })
+            self.assertTrue(any("PASSWORD_CHANGE_SUCCESS" in log for log in cm.output))
+
+    def test_privilege_change_logging(self):
+        """Verify that changes to user groups or permissions are logged."""
+        from django.contrib.auth.models import Permission
+        perm = Permission.objects.get(codename='view_instructor_dashboard')
+        
+        with self.assertLogs('security', level='INFO') as cm:
+            self.user.user_permissions.add(perm)
+            self.assertTrue(any("PRIVILEGE_CHANGE" in log for log in cm.output))
+            
+            self.user.user_permissions.remove(perm)
+            self.assertTrue(any("PRIVILEGE_CHANGE" in log for log in cm.output))

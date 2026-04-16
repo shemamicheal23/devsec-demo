@@ -19,7 +19,7 @@ def register_view(request):
         if form.is_valid():
             user = form.save()
             ip = request.META.get('REMOTE_ADDR')
-            logger.info(f"NEW_USER_REGISTERED: '{user.username}' from IP {ip}")
+            logger.info(f"USER_REGISTRATION: New account created for '{user.username}' from IP {ip}")
             messages.success(request, f"Account created successfully for {user.username}!")
             login(request, user)
             return redirect('home')
@@ -71,6 +71,8 @@ def password_change_view(request):
         if form.is_valid():
             user = form.save()
             update_session_auth_hash(request, user)  # Keep the user logged in
+            ip = request.META.get('REMOTE_ADDR')
+            logger.info(f"PASSWORD_CHANGE_SUCCESS: Password updated for user '{user.username}' from IP {ip}")
             messages.success(request, 'Your password was successfully updated!')
             return redirect('profile')
         else:
