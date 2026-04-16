@@ -124,3 +124,36 @@ class AuthenticationTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'shema/instructor_dashboard.html')
+
+class StoredXSSTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.username = 'victim'
+        self.password = 'VictimPass123!'
+        self.user = User.objects.create_user(username=self.username, password=self.password)
+        self.profile_url = reverse('profile', kwargs={'username': self.username})
+        self.update_url = reverse('update_profile', kwargs={'username': self.username})
+
+    def test_stored_xss_prevention_in_bio(self):
+        # Action: Attempt to inject a script tag into the bio
+        malicious_bio = "<script>alert('XSS')</script><b>BoldProof</b>"
+        self.client.login(username=self.username, password=self.password)
+        
+        # Save the malicious bio
+        update_response = self.client.post(self.update_url, {'bio': malicious_bio})
+        self.assertEqual(update_response.status_code, 302) # Should redirect back to profile
+        
+        # Action: View the profile page
+        response = self.client.get(self.profile_url)
+        self.assertEqual(response.status_code, 200)
+        
+        # Assert: The script tag is escaped (rendered as text, not HTML)
+        # Note: Django escapes ' as &#x27;
+        self.assertContains(response, "&lt;script&gt;alert(&#x27;XSS&#x27;)&lt;/script&gt;")
+        
+        # Assert: Even the bold tag is escaped
+        self.assertContains(response, "&lt;b&gt;BoldProof&lt;/b&gt;")
+        
+        # Verify the content does NOT render as raw HTML
+        self.assertNotContains(response, "<b>BoldProof</b>")
+        self.assertNotContains(response, "<script>alert")
