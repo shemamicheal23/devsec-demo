@@ -6,9 +6,18 @@ from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.conf import settings
+from django.core.cache import cache
 import logging
 
 logger = logging.getLogger('security')
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
 
 def home(request):
     return render(request, 'shema/home.html')
@@ -32,11 +41,26 @@ def register_view(request):
 def login_view(request):
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
+        
+        username = request.POST.get('username')
+        ip = get_client_ip(request)
+        attempts_key = f"login_attempts_{username}_{ip}"
+        attempts_count = cache.get(attempts_key, 0)
+
+        # 1. Pre-check: Threshold check (5 attempts)
+        if attempts_count >= 5:
+            logger.warning(f"BRUTE_FORCE_TRIGGERED: Blocked attempt for user '{username}' from IP {ip}")
+            messages.error(request, "Too many failed login attempts. Please try again after 5 minutes.")
+            return render(request, 'shema/login.html', {'form': form})
+
         if form.is_valid():
             username = form.cleaned_data.get('username')
             password = form.cleaned_data.get('password')
             user = authenticate(username=username, password=password)
             if user is not None:
+                # Clear attempts on success
+                cache.delete(attempts_key)
+                
                 login(request, user)
                 messages.info(request, f"You are now logged in as {username}.")
                 
@@ -50,6 +74,8 @@ def login_view(request):
                     next_url = 'home'
                 return redirect(next_url)
         else:
+            # Increment attempts on failure
+            cache.set(attempts_key, attempts_count + 1, 300) # 300 seconds = 5 minutes
             messages.error(request, "Invalid username or password.")
     else:
         form = AuthenticationForm()

@@ -1,9 +1,11 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django.core.cache import cache
 
 class AuthenticationTests(TestCase):
     def setUp(self):
+        cache.clear() # Reset throttling counters for each test
         self.client = Client()
         self.register_url = reverse('register')
         self.login_url = reverse('login')
@@ -88,3 +90,39 @@ class AuthenticationTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'shema/instructor_dashboard.html')
+
+    def test_login_brute_force_throttling(self):
+        # 1. Perform 5 failed login attempts
+        for _ in range(5):
+            response = self.client.post(self.login_url, {
+                'username': self.username,
+                'password': 'wrongpassword'
+            })
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("Invalid username or password", response.content.decode())
+
+        # 2. The 6th attempt should be blocked immediately (even with correct creds)
+        response = self.client.post(self.login_url, {
+            'username': self.username,
+            'password': self.password
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Too many failed login attempts", response.content.decode())
+
+    def test_login_brute_force_reset_on_success(self):
+        # 1. Fail twice
+        for _ in range(2):
+            self.client.post(self.login_url, {'username': self.username, 'password': 'wrong'})
+        
+        # 2. Succeed
+        response = self.client.post(self.login_url, {'username': self.username, 'password': self.password})
+        self.assertEqual(response.status_code, 302)
+        
+        # 3. Logout and fail 5 times again to ensure it takes 5 fresh ones
+        self.client.get(reverse('logout'))
+        for _ in range(4):
+            self.client.post(self.login_url, {'username': self.username, 'password': 'wrong'})
+        
+        # 5th attempt (which would be 7th total if not reset) should still allow login
+        response = self.client.post(self.login_url, {'username': self.username, 'password': self.password})
+        self.assertEqual(response.status_code, 302)
