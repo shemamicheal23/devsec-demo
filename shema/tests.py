@@ -8,7 +8,7 @@ class AuthenticationTests(TestCase):
         self.register_url = reverse('register')
         self.login_url = reverse('login')
         self.logout_url = reverse('logout')
-        self.profile_url = reverse('profile')
+
         self.home_url = reverse('home')
         self.username = 'testuser'
         self.password = 'TestPass123!'
@@ -52,15 +52,31 @@ class AuthenticationTests(TestCase):
 
     def test_profile_protected_access(self):
         # Access profile without login
-        response = self.client.get(self.profile_url)
+        profile_url = reverse('profile', kwargs={'username': self.username})
+        response = self.client.get(profile_url)
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse('login'), response.url)
 
         # Access profile with login
         self.client.login(username=self.username, password=self.password)
-        response = self.client.get(self.profile_url)
+        response = self.client.get(profile_url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'shema/profile.html')
+
+    def test_idor_prevention_on_profile_view(self):
+        # Create a second user
+        user2_username = 'hacker_user'
+        User.objects.create_user(username=user2_username, password='TestPass123!')
+        
+        # Log in as testuser
+        self.client.login(username=self.username, password=self.password)
+        
+        # Action: Attempt to access hacker_user's profile
+        hacker_profile_url = reverse('profile', kwargs={'username': user2_username})
+        response = self.client.get(hacker_profile_url)
+        
+        # Assert IDOR prevention gracefully returns 404
+        self.assertEqual(response.status_code, 404)
 
     def test_instructor_dashboard_anonymous_access(self):
         # Anonymous users should be redirected to login

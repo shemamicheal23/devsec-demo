@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm
 from django.contrib.auth.decorators import login_required, permission_required
@@ -6,6 +6,8 @@ from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.conf import settings
+from django.http import Http404
+from django.contrib.auth.models import User
 import logging
 
 logger = logging.getLogger('security')
@@ -61,8 +63,15 @@ def logout_view(request):
     return redirect('home')
 
 @login_required
-def profile_view(request):
-    return render(request, 'shema/profile.html')
+def profile_view(request, username):
+    # Object-level authorization check: Prevent Insecure Direct Object Reference (IDOR)
+    # Ensure the user accessing the profile is actually the owner of the profile.
+    if request.user.username != username:
+        # Avoid leaking existence information by returning a 404 rather than a 403 Forbidden
+        raise Http404("Profile not found")
+        
+    profile_user = get_object_or_404(User, username=username)
+    return render(request, 'shema/profile.html', {'profile_user': profile_user})
 
 @login_required
 def password_change_view(request):
@@ -72,7 +81,7 @@ def password_change_view(request):
             user = form.save()
             update_session_auth_hash(request, user)  # Keep the user logged in
             messages.success(request, 'Your password was successfully updated!')
-            return redirect('profile')
+            return redirect('profile', username=request.user.username)
         else:
             messages.error(request, 'Please correct the error below.')
     else:
