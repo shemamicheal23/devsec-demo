@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -78,3 +78,8 @@ def password_change_view(request):
     else:
         form = PasswordChangeForm(request.user)
     return render(request, 'shema/password_change.html', {'form': form})
+
+@login_required
+@permission_required('shema.view_instructor_dashboard', raise_exception=True)
+def instructor_dashboard_view(request):
+    return render(request, 'shema/instructor_dashboard.html')

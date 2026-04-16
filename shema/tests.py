@@ -61,3 +61,30 @@ class AuthenticationTests(TestCase):
         response = self.client.get(self.profile_url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'shema/profile.html')
+
+    def test_instructor_dashboard_anonymous_access(self):
+        # Anonymous users should be redirected to login
+        url = reverse('instructor_dashboard')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('login'), response.url)
+
+    def test_instructor_dashboard_standard_user_access(self):
+        # Normal authenticated user should get 403 Forbidden
+        self.client.login(username=self.username, password=self.password)
+        url = reverse('instructor_dashboard')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_instructor_dashboard_privileged_user_access(self):
+        # Create a privileged user and grant permission
+        privileged_user = User.objects.create_user(username='instructor1', password='TestPass123!')
+        from django.contrib.auth.models import Permission
+        perm = Permission.objects.get(codename='view_instructor_dashboard')
+        privileged_user.user_permissions.add(perm)
+        
+        self.client.login(username='instructor1', password='TestPass123!')
+        url = reverse('instructor_dashboard')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'shema/instructor_dashboard.html')
