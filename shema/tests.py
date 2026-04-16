@@ -88,3 +88,22 @@ class AuthenticationTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'shema/instructor_dashboard.html')
+
+    def test_logout_get_request_fails(self):
+        """Verify that GET requests to logout are no longer permitted (CSRF Protection)."""
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.get(self.logout_url)
+        # require_POST returns 405 Method Not Allowed
+        self.assertEqual(response.status_code, 405)
+        # User should still be logged in
+        self.client.get(self.profile_url) # Refresh request context
+        self.assertTrue(User.objects.get(username=self.username).is_authenticated)
+
+    def test_logout_csrf_protection_active(self):
+        """Verify that POST logout without CSRF token fails when checks are enforced."""
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.login(username=self.username, password=self.password)
+        
+        # POST without token should return 403 Forbidden
+        response = csrf_client.post(self.logout_url)
+        self.assertEqual(response.status_code, 403)

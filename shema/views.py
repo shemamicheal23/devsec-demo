@@ -10,6 +10,8 @@ import logging
 
 logger = logging.getLogger('security')
 
+from django.views.decorators.http import require_POST
+
 def home(request):
     return render(request, 'shema/home.html')
 
@@ -55,6 +57,7 @@ def login_view(request):
         form = AuthenticationForm()
     return render(request, 'shema/login.html', {'form': form})
 
+@require_POST
 def logout_view(request):
     logout(request)
     messages.info(request, "You have successfully logged out.")
