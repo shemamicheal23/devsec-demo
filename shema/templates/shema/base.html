@@ -53,7 +53,7 @@
                     </li>
                     {% if user.is_authenticated %}
                     <li class="nav-item" role="none">
-                        <a class="nav-link" href="{% url 'profile' %}" role="menuitem">Dashboard</a>
+                        <a class="nav-link" href="{% url 'profile' user.username %}" role="menuitem">Dashboard</a>
                     </li>
                     {% if perms.shema.view_instructor_dashboard %}
                     <li class="nav-item" role="none">
@@ -82,7 +82,7 @@
                         <ul class="dropdown-menu dropdown-menu-end glass-card border-0 mt-2 shadow-lg p-2"
                             aria-labelledby="userDropdown">
                             <li>
-                                <a class="dropdown-item text-white rounded-3 py-2" href="{% url 'profile' %}">
+                                <a class="dropdown-item text-white rounded-3 py-2" href="{% url 'profile' user.username %}">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2 opacity-75"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                     Account Settings
                                 </a>
