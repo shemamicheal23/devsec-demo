@@ -9,3 +9,15 @@ class BioForm(forms.ModelForm):
         widgets = {
             'bio': forms.Textarea(attrs={'rows': 4, 'maxlength': 500}),
         }
+
+
+class AvatarUploadForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['avatar']
+
+
+class DocumentUploadForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['document']

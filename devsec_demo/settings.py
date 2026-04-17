@@ -142,6 +142,17 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Media / uploads — stored outside static, served only via authenticated view
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Upload size limits (enforced in validators)
+MAX_AVATAR_SIZE = 2 * 1024 * 1024    # 2 MB
+MAX_DOCUMENT_SIZE = 5 * 1024 * 1024  # 5 MB
+
+# Hard Django request limit (covers both fields + multipart overhead)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024  # 6 MB
+
 # Logging Configuration
 LOGGING = {
     'version': 1,

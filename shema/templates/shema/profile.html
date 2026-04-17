@@ -109,6 +109,36 @@
                     </form>
                 </div>
 
+                <!-- Avatar upload -->
+                <div class="mb-4">
+                    <form method="post" action="{% url 'upload_avatar' profile_user.username %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <label class="detail-label mb-1 d-block">Avatar <span class="text-muted small">(jpg, png, gif, webp — max 2 MB)</span></label>
+                            {% if profile_user.profile.avatar %}
+                                <a href="{% url 'serve_upload' profile_user.username 'avatar' %}" class="small text-info d-block mb-1">View current avatar</a>
+                            {% endif %}
+                            <input type="file" name="avatar" accept=".jpg,.jpeg,.png,.gif,.webp" class="form-control form-control-sm">
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary btn-sm rounded-pill px-4">Upload Avatar</button>
+                    </form>
+                </div>
+
+                <!-- Document upload -->
+                <div class="mb-4">
+                    <form method="post" action="{% url 'upload_document' profile_user.username %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <label class="detail-label mb-1 d-block">Document <span class="text-muted small">(pdf, txt — max 5 MB)</span></label>
+                            {% if profile_user.profile.document %}
+                                <a href="{% url 'serve_upload' profile_user.username 'document' %}" class="small text-info d-block mb-1">View current document</a>
+                            {% endif %}
+                            <input type="file" name="document" accept=".pdf,.txt" class="form-control form-control-sm">
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary btn-sm rounded-pill px-4">Upload Document</button>
+                    </form>
+                </div>
+
                 <!-- Actions -->
                 <div class="d-flex flex-column flex-sm-row gap-3 pt-3 border-top border-white border-opacity-10">
                     <a href="{% url 'password_change' %}" class="btn btn-primary flex-grow-1" id="profile-change-pw-btn">
