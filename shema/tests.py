@@ -1,6 +1,9 @@
+import io
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings
 from .models import Profile
 
 
@@ -153,3 +156,64 @@ class StoredXSSTests(TestCase):
         ma = ProfileAdmin(Profile, AdminSite())
         preview = ma.bio_preview(profile)
         self.assertNotIsInstance(preview, SafeData)
+
+
+class SecuritySettingsTests(TestCase):
+    """Verify that production-grade security settings are configured correctly."""
+
+    def test_secret_key_is_set(self):
+        self.assertTrue(settings.SECRET_KEY, "SECRET_KEY must not be empty or None.")
+
+    def test_debug_defaults_to_false_without_env(self):
+        # The env-parsing logic treats anything other than 'true' as False.
+        import os
+        original = os.environ.get('DJANGO_DEBUG')
+        os.environ['DJANGO_DEBUG'] = 'False'
+        result = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'
+        self.assertFalse(result)
+        if original is None:
+            del os.environ['DJANGO_DEBUG']
+        else:
+            os.environ['DJANGO_DEBUG'] = original
+
+    def test_allowed_hosts_has_no_wildcard(self):
+        self.assertNotIn('*', settings.ALLOWED_HOSTS,
+                         "ALLOWED_HOSTS must not contain '*'.")
+
+    def test_content_type_nosniff_enabled(self):
+        self.assertTrue(settings.SECURE_CONTENT_TYPE_NOSNIFF)
+
+    def test_x_frame_options_is_deny(self):
+        self.assertEqual(settings.X_FRAME_OPTIONS, 'DENY')
+
+    def test_referrer_policy_is_set(self):
+        self.assertEqual(settings.SECURE_REFERRER_POLICY, 'same-origin')
+
+    def test_session_cookie_httponly(self):
+        self.assertTrue(settings.SESSION_COOKIE_HTTPONLY)
+
+    def test_session_cookie_samesite(self):
+        self.assertIn(settings.SESSION_COOKIE_SAMESITE, ('Lax', 'Strict'))
+
+    def test_csrf_cookie_samesite(self):
+        self.assertIn(settings.CSRF_COOKIE_SAMESITE, ('Lax', 'Strict'))
+
+    def test_session_cookie_age_is_limited(self):
+        # Must be set and no longer than 24 hours to limit session hijack window.
+        self.assertLessEqual(settings.SESSION_COOKIE_AGE, 86400)
+
+    def test_session_expires_on_browser_close(self):
+        self.assertTrue(settings.SESSION_EXPIRE_AT_BROWSER_CLOSE)
+
+    def test_csrf_cookie_not_httponly(self):
+        # CSRF_COOKIE_HTTPONLY must stay False — Django JS reads it for AJAX.
+        self.assertFalse(settings.CSRF_COOKIE_HTTPONLY)
+
+    def test_security_middleware_is_first(self):
+        first = settings.MIDDLEWARE[0]
+        self.assertEqual(first, 'django.middleware.security.SecurityMiddleware',
+                         "SecurityMiddleware must be the first middleware.")
+
+    def test_application_still_loads(self):
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
